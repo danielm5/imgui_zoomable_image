@@ -1,0 +1,182 @@
+{
+  "version": 10,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 31,
+    "patch": 6
+  },
+  "configurePresets": [
+    {
+      "name": "debug-config",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build/debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "release-config",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build/release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "win64",
+      "hidden": true,
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "macos",
+      "hidden": true,
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      }
+    },
+    {
+      "name": "linux",
+      "hidden": true,
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "msvc-win64",
+      "hidden": true,
+      "inherits": ["win64"],
+      "generator": "Visual Studio 17 2022",
+      "toolset": "host=x64",
+      "architecture": "x64",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "cl.exe",
+        "CMAKE_CXX_COMPILER": "cl.exe"
+      }
+    },
+    {
+      "name": "clang-unix-make",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "/usr/bin/clang",
+        "CMAKE_CXX_COMPILER": "/usr/bin/clang++"
+      }
+    },
+    {
+      "name": "gcc-unix-make",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "/usr/bin/gcc",
+        "CMAKE_CXX_COMPILER": "/usr/bin/g++"
+      }
+    },
+    {
+      "name": "makefile",
+      "hidden": true,
+      "generator": "Unix Makefiles"
+    },
+    {
+      "name": "ninja",
+      "hidden": true,
+      "generator": "Ninja"
+    },
+    {
+      "name": "clang-macos-make",
+      "hidden": true,
+      "inherits": ["clang-unix-make","macos","makefile"]
+    },
+    {
+      "name": "gcc-linux-make",
+      "hidden": true,
+      "inherits": ["gcc-unix-make","linux","makefile"]
+    },
+    {
+      "name": "gcc-linux-ninja",
+      "hidden": true,
+      "inherits": ["gcc-unix-make","linux","ninja"]
+    },
+    {
+      "name": "msvc-win64-debug",
+      "inherits": ["msvc-win64","debug-config"]
+    },
+    {
+      "name": "msvc-win64-release",
+      "inherits": ["msvc-win64","release-config"]
+    },
+    {
+      "name": "clang-macos-debug",
+      "inherits": ["clang-macos-make","debug-config"]
+    },
+    {
+      "name": "clang-macos-release",
+      "inherits": ["clang-macos-make","release-config"]
+    },
+    {
+      "name": "gcc-linux-debug",
+      "inherits": ["gcc-linux-make","debug-config"]
+    },
+    {
+      "name": "gcc-linux-release",
+      "inherits": ["gcc-linux-make","release-config"]
+    },
+    {
+      "name": "gcc-linux-ninja-debug",
+      "inherits": ["gcc-linux-ninja","debug-config"]
+    },
+    {
+      "name": "gcc-linux-ninja-release",
+      "inherits": ["gcc-linux-ninja","release-config"]
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "msvc-win64-debug",
+      "configurePreset": "msvc-win64-debug",
+      "configuration": "Debug",
+      "jobs": 4
+    },
+    {
+      "name": "msvc-win64-release",
+      "configurePreset": "msvc-win64-release",
+      "configuration": "Release",
+      "jobs": 4
+    },
+    {
+      "name": "clang-macos-debug",
+      "configurePreset": "clang-macos-debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "clang-macos-release",
+      "configurePreset": "clang-macos-release",
+      "configuration": "Release"
+    },
+    {
+      "name": "gcc-linux-debug",
+      "configurePreset": "gcc-linux-debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "gcc-linux-release",
+      "configurePreset": "gcc-linux-release",
+      "configuration": "Release"
+    },
+    {
+      "name": "gcc-linux-ninja-debug",
+      "configurePreset": "gcc-linux-ninja-debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "gcc-linux-ninja-release",
+      "configurePreset": "gcc-linux-ninja-release",
+      "configuration": "Release"
+    }
+  ]
+}
