@@ -9,6 +9,8 @@
 // - Documentation        https://dearimgui.com/docs
 // - Introduction, links and more at the top of imgui.cpp
 
+#include "../../imgui_zoomable_image.h"
+
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
@@ -109,31 +111,29 @@ int main(int, char**)
 
     // make checkerboard pattern
     const size_t checkerSize = 20;
-    std::vector<uint8_t> data(width * height * 3);
+    std::vector<uint8_t> data(width * height * 4);
     for (size_t y = 0; y < height; ++y)
     {
-      uint8_t* row = &data[y * width * 3];
+      uint8_t* row = &data[y * width * 4];
       for (size_t x = 0; x < width; ++x)
       {
         const bool isWhite = ((x / checkerSize) % 2) == ((y / checkerSize) % 2);
-        row[x * 3 + 0] = isWhite ? 200 : 50;
-        row[x * 3 + 1] = isWhite ? 200 : 50;
-        row[x * 3 + 2] = isWhite ? 200 : 50;
+        row[x * 4 + 0] = isWhite ? 200 : 50;
+        row[x * 4 + 1] = isWhite ? 200 : 50;
+        row[x * 4 + 2] = isWhite ? 200 : 50;
+        row[x * 4 + 3] = 255;
       }
     }
-
-    // Allow 1 byte alignment, default is 4 bytes
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
     // Upload image data to texture
     glTexImage2D(
       GL_TEXTURE_2D,
       0,
-      GL_RGB,
+      GL_RGBA,
       static_cast<GLsizei>(width),
       static_cast<GLsizei>(height),
       0,
-      GL_RGB,
+      GL_RGBA,
       GL_UNSIGNED_BYTE,
       data.data());
 
@@ -181,7 +181,16 @@ int main(int, char**)
     {
       ImGui::Begin("Image Window");
       displaySize = ImGui::GetContentRegionAvail();
-      ImGui::Image(textureId, displaySize); //, uv0, uv1);
+      const ImVec2 uv0 = ImVec2(0, 0);
+      const ImVec2 uv1 = ImVec2(1, 1);
+      // ImGui::Image(textureId, displaySize, uv0, uv1);
+      // ImGui::ImageWithBg(textureId, displaySize, uv0, uv1,
+      //     ImVec4(0, 0, 0, 1), ImVec4(1, 0, 0, 1));
+      // if (ImGui::ImageButton("ib", textureId, displaySize, uv0, uv1))
+      // {
+      //   printf("Image clicked!\n");
+      // }
+      ImGuiImage::Zoomable(textureId, displaySize, uv0, uv1);
       ImGui::End();
     }
 
