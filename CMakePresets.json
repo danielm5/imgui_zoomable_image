@@ -1,9 +1,9 @@
 {
-  "version": 10,
+  "version": 3,
   "cmakeMinimumRequired": {
     "major": 3,
-    "minor": 31,
-    "patch": 6
+    "minor": 22,
+    "patch": 0
   },
   "configurePresets": [
     {
@@ -53,16 +53,13 @@
       "name": "msvc-win64",
       "hidden": true,
       "inherits": ["win64"],
-      "generator": "Visual Studio 17 2022",
-      "toolset": "host=x64",
-      "architecture": "x64",
       "cacheVariables": {
         "CMAKE_C_COMPILER": "cl.exe",
         "CMAKE_CXX_COMPILER": "cl.exe"
       }
     },
     {
-      "name": "clang-unix-make",
+      "name": "clang-unix",
       "hidden": true,
       "cacheVariables": {
         "CMAKE_C_COMPILER": "/usr/bin/clang",
@@ -70,7 +67,7 @@
       }
     },
     {
-      "name": "gcc-unix-make",
+      "name": "gcc-unix",
       "hidden": true,
       "cacheVariables": {
         "CMAKE_C_COMPILER": "/usr/bin/gcc",
@@ -78,9 +75,11 @@
       }
     },
     {
-      "name": "makefile",
+      "name": "vs17",
       "hidden": true,
-      "generator": "Unix Makefiles"
+      "generator": "Visual Studio 17 2022",
+      "toolset": "host=x64",
+      "architecture": "x64"
     },
     {
       "name": "ninja",
@@ -88,27 +87,55 @@
       "generator": "Ninja"
     },
     {
+      "name": "make",
+      "hidden": true,
+      "generator": "Unix Makefiles"
+    },
+    {
+      "name": "msvc-win64-vs17",
+      "hidden": true,
+      "inherits": ["msvc-win64","vs17"]
+    },
+    {
+      "name": "msvc-win64-ninja",
+      "hidden": true,
+      "inherits": ["msvc-win64","ninja"]
+    },
+    {
       "name": "clang-macos-make",
       "hidden": true,
-      "inherits": ["clang-unix-make","macos","makefile"]
+      "inherits": ["clang-unix","macos","make"]
+    },
+    {
+      "name": "clang-macos-ninja",
+      "hidden": true,
+      "inherits": ["clang-unix","macos","ninja"]
     },
     {
       "name": "gcc-linux-make",
       "hidden": true,
-      "inherits": ["gcc-unix-make","linux","makefile"]
+      "inherits": ["gcc-unix","linux","make"]
     },
     {
       "name": "gcc-linux-ninja",
       "hidden": true,
-      "inherits": ["gcc-unix-make","linux","ninja"]
+      "inherits": ["gcc-unix","linux","ninja"]
     },
     {
       "name": "msvc-win64-debug",
-      "inherits": ["msvc-win64","debug-config"]
+      "inherits": ["msvc-win64-vs17","debug-config"]
     },
     {
       "name": "msvc-win64-release",
-      "inherits": ["msvc-win64","release-config"]
+      "inherits": ["msvc-win64-vs17","release-config"]
+    },
+    {
+      "name": "msvc-win64-ninja-debug",
+      "inherits": ["msvc-win64-ninja","debug-config"]
+    },
+    {
+      "name": "msvc-win64-ninja-release",
+      "inherits": ["msvc-win64-ninja","release-config"]
     },
     {
       "name": "clang-macos-debug",
@@ -117,6 +144,14 @@
     {
       "name": "clang-macos-release",
       "inherits": ["clang-macos-make","release-config"]
+    },
+    {
+      "name": "clang-macos-ninja-debug",
+      "inherits": ["clang-macos-ninja","debug-config"]
+    },
+    {
+      "name": "clang-macos-ninja-release",
+      "inherits": ["clang-macos-ninja","release-config"]
     },
     {
       "name": "gcc-linux-debug",
@@ -149,6 +184,16 @@
       "jobs": 4
     },
     {
+      "name": "msvc-win64-ninja-debug",
+      "configurePreset": "msvc-win64-ninja-debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "msvc-win64-ninja-release",
+      "configurePreset": "msvc-win64-ninja-release",
+      "configuration": "Release"
+    },
+    {
       "name": "clang-macos-debug",
       "configurePreset": "clang-macos-debug",
       "configuration": "Debug"
@@ -156,6 +201,78 @@
     {
       "name": "clang-macos-release",
       "configurePreset": "clang-macos-release",
+      "configuration": "Release"
+    },
+    {
+      "name": "clang-macos-ninja-debug",
+      "configurePreset": "clang-macos-ninja-debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "clang-macos-ninja-release",
+      "configurePreset": "clang-macos-ninja-release",
+      "configuration": "Release"
+    },
+    {
+      "name": "gcc-linux-debug",
+      "configurePreset": "gcc-linux-debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "gcc-linux-release",
+      "configurePreset": "gcc-linux-release",
+      "configuration": "Release"
+    },
+    {
+      "name": "gcc-linux-ninja-debug",
+      "configurePreset": "gcc-linux-ninja-debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "gcc-linux-ninja-release",
+      "configurePreset": "gcc-linux-ninja-release",
+      "configuration": "Release"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "msvc-win64-debug",
+      "configurePreset": "msvc-win64-debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "msvc-win64-release",
+      "configurePreset": "msvc-win64-release",
+      "configuration": "Release"
+    },
+    {
+      "name": "msvc-win64-ninja-debug",
+      "configurePreset": "msvc-win64-ninja-debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "msvc-win64-ninja-release",
+      "configurePreset": "msvc-win64-ninja-release",
+      "configuration": "Release"
+    },
+    {
+      "name": "clang-macos-debug",
+      "configurePreset": "clang-macos-debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "clang-macos-release",
+      "configurePreset": "clang-macos-release",
+      "configuration": "Release"
+    },
+    {
+      "name": "clang-macos-ninja-debug",
+      "configurePreset": "clang-macos-ninja-debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "clang-macos-ninja-release",
+      "configurePreset": "clang-macos-ninja-release",
       "configuration": "Release"
     },
     {

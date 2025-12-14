@@ -1,0 +1,85 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]  # on pull requests to main branch
+  workflow_dispatch:    # manually trigger the workflow
+
+permissions:
+  checks: write
+  actions: read
+  contents: read
+
+jobs:
+
+  build-linux:
+    name: Ubuntu-Build
+    runs-on: ubuntu-latest
+
+    env:
+      PRESET_NAME: gcc-linux-release
+
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v6.0.0
+      with:
+        submodules: true
+
+    - name: Install Linux Dependencies
+      run: |
+        sudo apt update
+        sudo apt install  \
+          libxrandr-dev   \
+          libxinerama-dev \
+          libxcursor-dev  \
+          libxi-dev       \
+          libgl-dev
+
+    - name: Cmake configure
+      run: cmake --preset ${{ env.PRESET_NAME }} ${{ env.CMAKE_CONFIG_OPTIONS }}
+
+    - name: Cmake build
+      run: cmake --build --preset "${{ env.PRESET_NAME }}" -j
+
+  build-windows:
+    name: Windows-Build
+    runs-on: windows-2025
+
+    env:
+      PRESET_NAME: msvc-win64-ninja-release
+
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v6.0.0
+      with:
+        submodules: true
+
+    - name: Set up MSVC environment
+      uses: ilammy/msvc-dev-cmd@v1
+
+    - name: Cmake configure
+      run: cmake --preset ${{ env.PRESET_NAME }} ${{ env.CMAKE_CONFIG_OPTIONS }}
+
+    - name: Cmake build
+      run: cmake --build --preset "${{ env.PRESET_NAME }}" -j
+
+  build-macos:
+    name: MacOS-Build
+    runs-on: macos-15
+
+    env:
+      PRESET_NAME: clang-macos-ninja-release
+
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v6.0.0
+      with:
+        submodules: true
+
+    - name: Cmake configure
+      run: cmake --preset ${{ env.PRESET_NAME }} ${{ env.CMAKE_CONFIG_OPTIONS }}
+
+    - name: Cmake build
+      run: cmake --build --preset "${{ env.PRESET_NAME }}" -j
