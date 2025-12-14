@@ -1,0 +1,3 @@
+
+add_executable(example_win32_directx11 main.cpp)
+target_link_libraries(example_win32_directx11 PRIVATE imgui)

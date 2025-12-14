@@ -1,4 +1,4 @@
-// Dear ImGui: standalone example application for Windows API + DirectX 9
+// Dear ImGui: standalone example application for Windows API + DirectX 10
 
 // Learn about Dear ImGui:
 // - FAQ                  https://dearimgui.com/faq
@@ -9,9 +9,10 @@
 #include "../../imgui_zoomable_image.h"
 
 #include "imgui.h"
-#include "imgui_impl_dx9.h"
 #include "imgui_impl_win32.h"
-#include <d3d9.h>
+#include "imgui_impl_dx10.h"
+#include <d3d10_1.h>
+#include <d3d10.h>
 #include <tchar.h>
 
 #include <stdio.h>
@@ -19,16 +20,17 @@
 #include <stdexcept>
 
 // Data
-static LPDIRECT3D9              g_pD3D = nullptr;
-static LPDIRECT3DDEVICE9        g_pd3dDevice = nullptr;
-static bool                     g_DeviceLost = false;
+static ID3D10Device*            g_pd3dDevice = nullptr;
+static IDXGISwapChain*          g_pSwapChain = nullptr;
+static bool                     g_SwapChainOccluded = false;
 static UINT                     g_ResizeWidth = 0, g_ResizeHeight = 0;
-static D3DPRESENT_PARAMETERS    g_d3dpp = {};
+static ID3D10RenderTargetView*  g_mainRenderTargetView = nullptr;
 
 // Forward declarations of helper functions
 bool CreateDeviceD3D(HWND hWnd);
 void CleanupDeviceD3D();
-void ResetDevice();
+void CreateRenderTarget();
+void CleanupRenderTarget();
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 // Main code
@@ -45,7 +47,7 @@ int main(int, char**)
     nullptr, nullptr, nullptr, nullptr, L"ImGui Example", nullptr };
   ::RegisterClassExW(&wc);
   HWND hwnd = ::CreateWindowW(wc.lpszClassName,
-    L"Dear ImGui Zoomable Image DirectX9 Example", WS_OVERLAPPEDWINDOW,
+    L"Dear ImGui Zoomable Image DirectX10 Example", WS_OVERLAPPEDWINDOW,
     100, 100, (int)(1280 * main_scale), (int)(800 * main_scale),
     nullptr, nullptr, wc.hInstance, nullptr);
 
@@ -78,36 +80,47 @@ int main(int, char**)
 
   // Setup Platform/Renderer backends
   ImGui_ImplWin32_Init(hwnd);
-  ImGui_ImplDX9_Init(g_pd3dDevice);
+  ImGui_ImplDX10_Init(g_pd3dDevice);
 
-  // Create a DirectX 9 texture
-  LPDIRECT3DTEXTURE9 texture = nullptr;
+  // Create a DirectX 10 texture
+  ID3D10Texture2D* texture = nullptr;
   const UINT width = 320, height = 240;
-  if (!SUCCEEDED(g_pd3dDevice->CreateTexture(width, height, 1, 0,
-    D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &texture, nullptr)))
+  D3D10_TEXTURE2D_DESC desc = {};
+  desc.Width = width;
+  desc.Height = height;
+  desc.MipLevels = 1;
+  desc.ArraySize = 1;
+  desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // RGBA format
+  desc.SampleDesc.Count = 1;
+  desc.Usage = D3D10_USAGE_DYNAMIC;
+  desc.BindFlags = D3D10_BIND_SHADER_RESOURCE;
+  desc.CPUAccessFlags = D3D10_CPU_ACCESS_WRITE;
+  if (!SUCCEEDED(g_pd3dDevice->CreateTexture2D(&desc, nullptr, &texture)))
   {
     throw std::runtime_error("Failed to create test texture");
   }
+  D3D10_MAPPED_TEXTURE2D mappedTex;
+  if (!SUCCEEDED(texture->Map(0, D3D10_MAP_WRITE_DISCARD, 0, &mappedTex)))
+  {
+    throw std::runtime_error("Failed to map test texture");
+  }
   { // Fill the texture with a checkerboard pattern
-    D3DLOCKED_RECT lockedRect;
-    if (!SUCCEEDED(texture->LockRect(0, &lockedRect, nullptr, 0)))
-    {
-      throw std::runtime_error("Failed to lock test texture");
-    }
     const size_t checkerSize = 20;
     for (size_t y = 0; y < height; ++y)
     {
       uint32_t* row = reinterpret_cast<uint32_t*>(
-        static_cast<uint8_t*>(lockedRect.pBits) + y * lockedRect.Pitch);
+        static_cast<uint8_t*>(mappedTex.pData) + y * mappedTex.RowPitch);
       for (size_t x = 0; x < width; ++x)
       {
         bool isWhite = ((x / checkerSize) % 2) == ((y / checkerSize) % 2);
         uint8_t v = isWhite ? 200 : 50;
-        row[x] = 0xFF000000 | (v << 16) | (v << 8) | v; // ARGB
+        row[x] = (0xFF << 24) | (v << 16) | (v << 8) | v; // RGBA
       }
     }
-    texture->UnlockRect(0);
+    texture->Unmap(0);
   }
+  ID3D10ShaderResourceView* textureView = nullptr;
+  g_pd3dDevice->CreateShaderResourceView(texture, nullptr, &textureView);
 
   // Our state
   ImGuiImage::State zoomState;
@@ -120,7 +133,8 @@ int main(int, char**)
   while (!done)
   {
     // Poll and handle messages (inputs, window resize, etc.)
-    // See the WndProc() function below for our to dispatch events to the Win32 backend.
+    // See the WndProc() function below for our to dispatch events to the
+    // Win32 backend.
     MSG msg;
     while (::PeekMessage(&msg, nullptr, 0U, 0U, PM_REMOVE))
     {
@@ -132,31 +146,27 @@ int main(int, char**)
     if (done)
       break;
 
-    // Handle lost D3D9 device
-    if (g_DeviceLost)
+    // Handle window being minimized or screen locked
+    if (g_SwapChainOccluded && g_pSwapChain->Present(0, DXGI_PRESENT_TEST)
+      == DXGI_STATUS_OCCLUDED)
     {
-      HRESULT hr = g_pd3dDevice->TestCooperativeLevel();
-      if (hr == D3DERR_DEVICELOST)
-      {
-        ::Sleep(10);
-        continue;
-      }
-      if (hr == D3DERR_DEVICENOTRESET)
-        ResetDevice();
-      g_DeviceLost = false;
+      ::Sleep(10);
+      continue;
     }
+    g_SwapChainOccluded = false;
 
     // Handle window resize (we don't resize directly in the WM_SIZE handler)
     if (g_ResizeWidth != 0 && g_ResizeHeight != 0)
     {
-      g_d3dpp.BackBufferWidth = g_ResizeWidth;
-      g_d3dpp.BackBufferHeight = g_ResizeHeight;
+      CleanupRenderTarget();
+      g_pSwapChain->ResizeBuffers(
+        0, g_ResizeWidth, g_ResizeHeight, DXGI_FORMAT_UNKNOWN, 0);
       g_ResizeWidth = g_ResizeHeight = 0;
-      ResetDevice();
+      CreateRenderTarget();
     }
 
     // Start the Dear ImGui frame
-    ImGui_ImplDX9_NewFrame();
+    ImGui_ImplDX10_NewFrame();
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 
@@ -171,7 +181,7 @@ int main(int, char**)
     {
       ImGui::Begin("Image Window");
       displaySize = ImGui::GetContentRegionAvail();
-      ImGuiImage::Zoomable(texture, displaySize, &zoomState);
+      ImGuiImage::Zoomable(textureView, displaySize, &zoomState);
       ImGui::End();
     }
 
@@ -201,32 +211,26 @@ int main(int, char**)
     }
 
     // Rendering
-    ImGui::EndFrame();
-    g_pd3dDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
-    g_pd3dDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-    g_pd3dDevice->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
-    D3DCOLOR clear_col_dx = D3DCOLOR_RGBA(
-      static_cast<int>(clearColor.x*clearColor.w*255.0f),
-      static_cast<int>(clearColor.y*clearColor.w*255.0f),
-      static_cast<int>(clearColor.z*clearColor.w*255.0f),
-      static_cast<int>(clearColor.w*255.0f));
-    g_pd3dDevice->Clear(0, nullptr, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,
-      clear_col_dx, 1.0f, 0);
-    if (g_pd3dDevice->BeginScene() >= 0)
-    {
-      ImGui::Render();
-      ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
-      g_pd3dDevice->EndScene();
-    }
-    HRESULT result = g_pd3dDevice->Present(nullptr, nullptr, nullptr, nullptr);
-    if (result == D3DERR_DEVICELOST)
-        g_DeviceLost = true;
+    ImGui::Render();
+    const float colorWithAlpha[4] = {
+      clearColor.x * clearColor.w, clearColor.y * clearColor.w,
+      clearColor.z * clearColor.w, clearColor.w };
+    g_pd3dDevice->OMSetRenderTargets(1, &g_mainRenderTargetView, nullptr);
+    g_pd3dDevice->ClearRenderTargetView(g_mainRenderTargetView, colorWithAlpha);
+    ImGui_ImplDX10_RenderDrawData(ImGui::GetDrawData());
+
+    // Present
+    HRESULT hr = g_pSwapChain->Present(1, 0);   // Present with vsync
+    //HRESULT hr = g_pSwapChain->Present(0, 0); // Present without vsync
+    g_SwapChainOccluded = (hr == DXGI_STATUS_OCCLUDED);
   }
 
   // Cleanup
+  if (textureView)
+    textureView->Release();
   if (texture)
     texture->Release();
-  ImGui_ImplDX9_Shutdown();
+  ImGui_ImplDX10_Shutdown();
   ImGui_ImplWin32_Shutdown();
   ImGui::DestroyContext();
 
@@ -241,38 +245,63 @@ int main(int, char**)
 
 bool CreateDeviceD3D(HWND hWnd)
 {
-  if ((g_pD3D = Direct3DCreate9(D3D_SDK_VERSION)) == nullptr)
+  // Setup swap chain
+  // This is a basic setup. Optimally could use handle fullscreen mode differently.
+  // See #8979 for suggestions.
+  DXGI_SWAP_CHAIN_DESC sd;
+  ZeroMemory(&sd, sizeof(sd));
+  sd.BufferCount = 2;
+  sd.BufferDesc.Width = 0;
+  sd.BufferDesc.Height = 0;
+  sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+  sd.BufferDesc.RefreshRate.Numerator = 60;
+  sd.BufferDesc.RefreshRate.Denominator = 1;
+  sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+  sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+  sd.OutputWindow = hWnd;
+  sd.SampleDesc.Count = 1;
+  sd.SampleDesc.Quality = 0;
+  sd.Windowed = TRUE;
+  sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+
+  UINT createDeviceFlags = 0;
+  //createDeviceFlags |= D3D10_CREATE_DEVICE_DEBUG;
+  HRESULT res = D3D10CreateDeviceAndSwapChain(
+    nullptr, D3D10_DRIVER_TYPE_HARDWARE, nullptr, createDeviceFlags,
+    D3D10_SDK_VERSION, &sd, &g_pSwapChain, &g_pd3dDevice);
+  if (res == DXGI_ERROR_UNSUPPORTED) // Try high-performance WARP software driver
+                                     // if hardware is not available.
+    res = D3D10CreateDeviceAndSwapChain(nullptr, D3D10_DRIVER_TYPE_WARP, nullptr,
+      createDeviceFlags, D3D10_SDK_VERSION, &sd, &g_pSwapChain, &g_pd3dDevice);
+  if (res != S_OK)
     return false;
 
-  // Create the D3DDevice
-  ZeroMemory(&g_d3dpp, sizeof(g_d3dpp));
-  g_d3dpp.Windowed = TRUE;
-  g_d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
-  g_d3dpp.BackBufferFormat = D3DFMT_UNKNOWN; // Need to use an explicit format with alpha if needing per-pixel alpha composition.
-  g_d3dpp.EnableAutoDepthStencil = TRUE;
-  g_d3dpp.AutoDepthStencilFormat = D3DFMT_D16;
-  g_d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_ONE;           // Present with vsync
-  //g_d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;   // Present without vsync, maximum unthrottled framerate
-  if (g_pD3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd,
-    D3DCREATE_HARDWARE_VERTEXPROCESSING, &g_d3dpp, &g_pd3dDevice) < 0)
-    return false;
-
+  CreateRenderTarget();
   return true;
 }
 
 void CleanupDeviceD3D()
 {
+  CleanupRenderTarget();
+  if (g_pSwapChain) { g_pSwapChain->Release(); g_pSwapChain = nullptr; }
   if (g_pd3dDevice) { g_pd3dDevice->Release(); g_pd3dDevice = nullptr; }
-  if (g_pD3D) { g_pD3D->Release(); g_pD3D = nullptr; }
 }
 
-void ResetDevice()
+void CreateRenderTarget()
 {
-  ImGui_ImplDX9_InvalidateDeviceObjects();
-  HRESULT hr = g_pd3dDevice->Reset(&g_d3dpp);
-  if (hr == D3DERR_INVALIDCALL)
-    IM_ASSERT(0);
-  ImGui_ImplDX9_CreateDeviceObjects();
+  ID3D10Texture2D* pBackBuffer;
+  g_pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pBackBuffer));
+  g_pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, &g_mainRenderTargetView);
+  pBackBuffer->Release();
+}
+
+void CleanupRenderTarget()
+{
+  if (g_mainRenderTargetView)
+  {
+    g_mainRenderTargetView->Release();
+    g_mainRenderTargetView = nullptr;
+  }
 }
 
 // Forward declare message handler from imgui_impl_win32.cpp
