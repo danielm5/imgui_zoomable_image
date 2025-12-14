@@ -142,6 +142,8 @@ int main(int, char**)
   }
 
   // Our state
+  ImGuiImage::State zoomState;
+  zoomState.textureSize = ImVec2(width, height);
   ImVec4 clearColor{ 0.45f, 0.55f, 0.60f, 1.00f};
   ImVec2 displaySize{ 0, 0 };
 
@@ -173,7 +175,7 @@ int main(int, char**)
     ImVec2 frameSize = ImGui::GetMainViewport()->Size;
     ImVec2 imageWindowPos = ImVec2(frameSize.x * 0.1f, frameSize.y * 0.1f);
     ImVec2 imageWindowSize = ImVec2(frameSize.x * 0.5f, frameSize.y * 0.5f);
-    ImVec2 infoWindowPos = ImVec2(frameSize.x * 0.7f, frameSize.y * 0.1f);
+    ImVec2 controlsWindowPos = ImVec2(frameSize.x * 0.7f, frameSize.y * 0.1f);
 
     // Create a window to display the test image
     ImGui::SetNextWindowPos(imageWindowPos, ImGuiCond_Once);
@@ -181,25 +183,29 @@ int main(int, char**)
     {
       ImGui::Begin("Image Window");
       displaySize = ImGui::GetContentRegionAvail();
-      const ImVec2 uv0 = ImVec2(0, 0);
-      const ImVec2 uv1 = ImVec2(1, 1);
-      // ImGui::Image(textureId, displaySize, uv0, uv1);
-      // ImGui::ImageWithBg(textureId, displaySize, uv0, uv1,
-      //     ImVec4(0, 0, 0, 1), ImVec4(1, 0, 0, 1));
-      // if (ImGui::ImageButton("ib", textureId, displaySize, uv0, uv1))
-      // {
-      //   printf("Image clicked!\n");
-      // }
-      ImGuiImage::Zoomable(textureId, displaySize, uv0, uv1);
+      ImGuiImage::Zoomable(textureId, displaySize, &zoomState);
       ImGui::End();
     }
 
     // Create a window displaying information about the test image
-    ImGui::SetNextWindowPos(infoWindowPos, ImGuiCond_Once);
+    ImGui::SetNextWindowPos(controlsWindowPos, ImGuiCond_Once);
     {
-      ImGui::Begin("Info Window");
+      ImGui::Begin("Controls Window");
+      ImGui::Checkbox("Enable Zoom/Pan", &zoomState.zoomPanEnabled);
+      ImGui::Checkbox("Maintain Aspect Ratio", &zoomState.maintainAspectRatio);
+      if (ImGui::Button("Reset Zoom/Pan"))
+      {
+        zoomState.zoomLevel = 1.0f;
+        zoomState.panOffset = ImVec2(0.0f, 0.0f);
+      }
+      ImGui::Separator();
       ImGui::Text("Texture Size: %zu x %zu", width, height);
       ImGui::Text("Display Size: %.0f x %.0f", displaySize.x, displaySize.y);
+      ImGui::Text("Zoom Level: %.2f%%", zoomState.zoomLevel * 100.0f);
+      ImGui::Text("Pan Offset: (%.2f, %.2f)", zoomState.panOffset.x * width,
+                                              zoomState.panOffset.y * height);
+      ImGui::Text("Mouse Pos: (%.2f, %.2f)", zoomState.mousePosition.x,
+                                             zoomState.mousePosition.y);
       ImGui::Separator();
       ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
         1000.0f / io.Framerate, io.Framerate);
