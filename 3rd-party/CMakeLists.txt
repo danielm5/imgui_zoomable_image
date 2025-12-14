@@ -1,12 +1,12 @@
 
 # GLFW #######################################################################
-if (USE_GLFW_GL3)
+if (USE_GLFW)
   if (LINUX)
     set(GLFW_BUILD_WAYLAND 0)
     set(GLFW_BUILD_X11 1)
   endif()
   add_subdirectory(glfw)
-endif(USE_GLFW_GL3)
+endif(USE_GLFW)
 
 # Dear ImGui #################################################################
 
@@ -19,19 +19,15 @@ add_library(imgui STATIC
 
 target_include_directories(imgui PUBLIC imgui imgui/backends imgui/misc/cpp)
 
-if (USE_GLFW_GL3)
-  target_sources(imgui PRIVATE
-    imgui/backends/imgui_impl_glfw.cpp
-    imgui/backends/imgui_impl_opengl3.cpp
-  )
-
-  target_compile_definitions(imgui
-    PUBLIC
-      -DUSE_GLFW_GL3
-  )
-
+if (USE_GLFW)
+  target_sources(imgui PRIVATE imgui/backends/imgui_impl_glfw.cpp)
+  target_compile_definitions(imgui PUBLIC -DUSE_GLFW)
   target_link_libraries(imgui PUBLIC glfw)
+endif(USE_GLFW)
 
+if (USE_OPENGL3)
+  target_sources(imgui PRIVATE imgui/backends/imgui_impl_opengl3.cpp)
+  target_compile_definitions(imgui PUBLIC -DUSE_OPENGL3)
   if (WIN32)
     target_link_libraries(imgui PUBLIC "opengl32")
   elseif(APPLE)
@@ -39,5 +35,9 @@ if (USE_GLFW_GL3)
   elseif(LINUX)
     target_link_libraries(imgui PUBLIC "-lGL")
   endif()
+endif(USE_OPENGL3)
 
-endif(USE_GLFW_GL3)
+if (USE_WIN32)
+  target_sources(imgui PRIVATE imgui/backends/imgui_impl_win32.cpp)
+  target_compile_definitions(imgui PUBLIC -DUSE_WIN32)
+endif(USE_WIN32)

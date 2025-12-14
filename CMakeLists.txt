@@ -28,13 +28,27 @@ if(MSVC)
   add_compile_options(/permissive-)
 endif()
 
-option(USE_GLFW_GL3 "Enable GLFW/OpenGL3 backend" ON)
+option(USE_GLFW "Enable GLFW backend" ON)
+if (WIN32)
+  option(USE_WIN32 "Enable Win32 backend" ON)
+endif(WIN32)
+
+option(USE_OPENGL3 "Enable OpenGL3 backend" ON)
 
 set(IMGUI_DIR ${PROJECT_SOURCE_DIR}/3rd-party/imgui)
 
-if(USE_GLFW_GL3)
+if(USE_GLFW)
+  message(STATUS "GLFW backend enabled")
   set(GLFW_DIR ${PROJECT_SOURCE_DIR}/3rd-party/glfw)
-endif()
+endif(USE_GLFW)
+
+if (USE_WIN32)
+  message(STATUS "Win32 backend enabled")
+endif(USE_WIN32)
+
+if(USE_OPENGL3)
+  message(STATUS "OpenGL3 backend enabled")
+endif(USE_OPENGL3)
 
 add_subdirectory(3rd-party)
 add_subdirectory(examples)
