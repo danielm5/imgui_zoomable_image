@@ -72,7 +72,7 @@ int main(int, char**)
   GLFWwindow* window = glfwCreateWindow(
     static_cast<int>(1280 * mainScale),
     static_cast<int>(800 * mainScale),
-    "ImGui Zoomable Image GLFW+OpenGL3 example",
+    "Dear ImGui Zoomable Image GLFW+OpenGL3 example",
     nullptr, nullptr);
   if (window == nullptr)
     return 1;

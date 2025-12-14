@@ -49,12 +49,11 @@ int main(int, char**)
 
   // Create application window
   WNDCLASSEXW wc = {
-    sizeof(wc), CS_OWNDC, WndProc, 0L, 0L,
-    GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr,
-    L"ImGui Example", nullptr };
+    sizeof(wc), CS_OWNDC, WndProc, 0L, 0L, GetModuleHandle(nullptr),
+    nullptr, nullptr, nullptr, nullptr, L"ImGui Example", nullptr };
   ::RegisterClassExW(&wc);
   HWND hwnd = ::CreateWindowW(wc.lpszClassName,
-    L"ImGui Zoomable Image Win32+OpenGL3 Example", WS_OVERLAPPEDWINDOW,
+    L"Dear ImGui Zoomable Image Win32+OpenGL3 Example", WS_OVERLAPPEDWINDOW,
     100, 100, (int)(1280 * main_scale), (int)(800 * main_scale),
     nullptr, nullptr, wc.hInstance, nullptr);
 
@@ -218,6 +217,8 @@ int main(int, char**)
     ::SwapBuffers(g_MainWindow.hDC);
   }
 
+  // Cleanup
+  glDeleteTextures(1, &textureId);
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplWin32_Shutdown();
   ImGui::DestroyContext();

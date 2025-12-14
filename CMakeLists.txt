@@ -34,6 +34,9 @@ if (WIN32)
 endif(WIN32)
 
 option(USE_OPENGL3 "Enable OpenGL3 backend" ON)
+if (WIN32)
+  option(USE_DIRECTX9 "Enable DirectX9 backend" ON)
+endif(WIN32)
 
 set(IMGUI_DIR ${PROJECT_SOURCE_DIR}/3rd-party/imgui)
 
@@ -49,6 +52,9 @@ endif(USE_WIN32)
 if(USE_OPENGL3)
   message(STATUS "OpenGL3 backend enabled")
 endif(USE_OPENGL3)
+if (USE_DIRECTX9)
+  message(STATUS "DirectX9 backend enabled")
+endif(USE_DIRECTX9)
 
 add_subdirectory(3rd-party)
 add_subdirectory(examples)
