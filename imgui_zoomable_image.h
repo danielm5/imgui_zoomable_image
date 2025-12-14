@@ -16,6 +16,7 @@ namespace ImGuiImage
   {
     bool zoomPanEnabled = true;
     bool maintainAspectRatio = false;
+    float maxZoomLevel = 0.0f;
     ImVec2 textureSize = ImVec2(0.0f, 0.0f);
     float zoomLevel = 1.0f;
     ImVec2 panOffset = ImVec2(0.0f, 0.0f);
@@ -176,7 +177,9 @@ namespace ImGuiImage
 
           // compute the new scale
           constexpr float maxScale{ 1.0f };
-          const float minScale{ 1.0f / std::max(textureSize.x, textureSize.y) };
+          const float maxZoomLevel{ s->maxZoomLevel > 1.0f ?
+            s->maxZoomLevel : std::max(textureSize.x, textureSize.y) };
+          const float minScale{ 1.0f / maxZoomLevel };
           const float scaleFactor{ io.MouseWheel < 0 ? 1.1f : 0.9f };
           const float s2{ std::min(maxScale, std::max(minScale, scaleFactor * s1)) };
 
