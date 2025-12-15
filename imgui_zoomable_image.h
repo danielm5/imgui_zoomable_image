@@ -3,7 +3,7 @@
 // Copyright (c) 2025 Daniel Moreno
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the “Software”), to deal
+// of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
@@ -12,7 +12,7 @@
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
 //
-// THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 // AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
@@ -20,6 +20,70 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //------------------------------------------------------------------------------
+//
+// ImGui Zoomable Image
+// ====================
+// A simple ImGui widget to display zoomable and pannable images within an
+// ImGui window.
+//
+// Usage
+// -----
+// Include this header file "imgui_zoomable_image.h" in your project. Then call
+// the `ImGuiImage::Zoomable()` function from within an ImGui window to display
+// a zoomable and pannable image. See the function documentation below for
+// details on the parameters.
+// Example code is provided in the `examples/` folder of the project.
+//
+// The following is a minimal sketch of how your code could look:
+//
+//    // Include the header file.
+//    #include "imgui_zoomable_image.h"
+//
+//    ...
+//
+//    // Declare a variable of type `ImGuiImage::State` to store the current
+//    // zoom level and other variables the display uses. This object must be
+//    // preserved across frames to maintain zoom and pan state.
+//    ImGuiImage::State zoomState;
+//    // (Optional) Set the actual size of the texture to display. It is used
+//    // internally to compute the aspect ratio, to map the mouse position to
+//    // texture pixel coordinates, and to compute the maximum zoom level limit.
+//    zoomState.textureSize = ImVec2(width, height);
+//
+//    ...
+//
+//    // Display your image as if using `ImGui::Image` directly.
+//    ImGui::Begin("Image Window");
+//    ImVec2 displaySize = ImGui::GetContentRegionAvail();
+//    // textureId should be a valid ImGui texture identifier
+//    // (e.g., from OpenGL,DirectX, etc.)
+//    ImGuiImage::Zoomable(textureId, displaySize, &zoomState);
+//    ImGui::End();
+//
+// Customization
+// -------------
+// You can customize the zooming and panning behavior by modifying the
+// `ImGuiImage::State` structure passed to the `Zoomable()` function. See the
+// structure documentation for details on the available options.
+//
+// Mouse Controls
+// --------------
+// - Scroll Wheel: Zoom in/out centered on the mouse cursor.
+// - Left Mouse Button Drag: Pan the image when zoomed in.
+// - Double Click: Reset zoom and pan to default.
+//
+// Requirements
+// ------------
+// - Dear ImGui v1.92.5 or later. Most like works with earlier versions too but
+///  not officially tested.
+// - A valid ImTextureRef representing the image to display.
+//
+// Limitations
+// -----------
+// - This widget does not handle loading or managing textures. You must provide
+//   a valid ImTextureRef.
+// - The widget assumes the texture is in a format compatible with ImGui's
+//   rendering backend.
 //
 
 #ifndef IMGUI_ZOOMABLE_IMAGE_H
@@ -34,33 +98,72 @@
 
 namespace ImGuiImage
 {
+  // Structure to hold the state of the zoomable image widget.
+  // You can create an instance of this structure and pass it to the
+  // `Zoomable()` function to maintain the zoom and pan state across frames.
+  //
+  // Members:
+  // - Inputs (not modified by the widget):
+  //   - zoomPanEnabled: Enable or disable zooming and panning functionality.
+  //   - maintainAspectRatio: Maintain the aspect ratio of the image when
+  //                          resizing. Requires `textureSize` to be set.
+  //   - maxZoomLevel: Maximum allowed zoom level (0.0 = automatically set).
+  //   - textureSize: Size of the texture/image being displayed. This is
+  //                  the original size of the image in pixels. If not set,
+  //                  the widget will attempt to infer the size from the
+  //                  displayed image size and UV coordinates.
+  // - Outputs (set by the widget):
+  //   - zoomLevel: Current zoom level (1.0 = 100%).
+  //   - panOffset: Current pan offset in normalized coordinates (-1.0 to 1.0).
+  //   - mousePosition: Current mouse position within the image area, or NaN if
+  //                    the mouse is outside the image area.
   struct State
   {
+    // User Inputs
     bool zoomPanEnabled = true;
     bool maintainAspectRatio = false;
     float maxZoomLevel = 0.0f;
     ImVec2 textureSize = ImVec2(0.0f, 0.0f);
+
+    // Outputs
     float zoomLevel = 1.0f;
     ImVec2 panOffset = ImVec2(0.0f, 0.0f);
     ImVec2 mousePosition = ImVec2(0.0f, 0.0f);
   };
 
+  // Default values for the Zoomable function parameters
   constexpr ImVec2 kDefaultUV0(0.0f, 0.0f);
   constexpr ImVec2 kDefaultUV1(1.0f, 1.0f);
   constexpr ImVec4 kDefaultBackgroundColor(0, 0, 0, 0);
   constexpr ImVec4 kDefaultTintColor(1, 1, 1, 1);
 
-  // Function to display a zoomable and pannable image within an ImGui window.
+  // Zoomable image display functions
+  // ================================
+  // There are three overloads of the `Zoomable()` function provided for
+  // convenience. The first two overloads use default values for the UV
+  // coordinates, background color, and tint color. The third overload allows
+  // you to specify all parameters explicitly. All overloads accept an optional
+  // `State` pointer to maintain the zoom and pan state across frames.
+  //
+  // Use `ImGuiImage::Zoomable()` as a drop-in replacement for `ImGui::Image()`
+  // to add zooming and panning functionality to your images.
+  //
+  // To learn more about `ImTextureRef`, UV coordinates, and other parameters,
+  // refer to the ImGui documentation:
+  //
+  // - https://github.com/ocornut/imgui/wiki/Image-Loading-and-Displaying-Examples
+  //
   // Parameters:
+  // ----------
   // - texRef: The ImGui texture reference of the image to display.
-  //   Read about `ImTextureID/ImTextureRef` here:
-  //   https://github.com/ocornut/imgui/wiki/Image-Loading-and-Displaying-Examples
   // - displaySize: The size (width and height) to display the image within the
   //   ImGui window.
-  // - 'uv0' and 'uv1' are texture coordinates. Read about them from the same
-  //   link above.
+  // - uv0: The UV coordinates of the top-left corner of the image.
+  // - uv1: The UV coordinates of the bottom-right corner of the image.
   // - bgColor: Background color behind the image.
   // - tintColor: Tint color to apply to the image.
+  // - state: Optional pointer to a `State` structure to maintain zoom and pan
+  //          state across frames. If `nullptr`, no state is maintained.
   IMGUI_API void Zoomable(
     ImTextureRef texRef,
     const ImVec2& displaySize,
@@ -76,12 +179,13 @@ namespace ImGuiImage
   IMGUI_API void Zoomable(
     ImTextureRef texRef,
     const ImVec2& displaySize,
-    const ImVec2& uv0 = kDefaultUV0,
-    const ImVec2& uv1 = kDefaultUV1,
-    const ImVec4& bgColor = kDefaultBackgroundColor,
-    const ImVec4& tintColor = kDefaultTintColor,
+    const ImVec2& uv0,
+    const ImVec2& uv1,
+    const ImVec4& bgColor,
+    const ImVec4& tintColor,
     State* state = nullptr);
 }
+
 // ----------------------------------- Implementation ------------------------
 namespace ImGuiImage
 {
