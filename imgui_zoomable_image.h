@@ -96,6 +96,14 @@
 #include <cstdlib>
 #include <cmath>
 
+// Library Version
+// ===============
+// Integer encoded as XYYZZ for use in #if preprocessor conditionals:
+//  e.g. '#if IMGUI_ZOOMABLE_IMAGE_VERSION_NUM >= 12345'
+#define IMGUI_ZOOMABLE_IMAGE_VERSION      "0.1.0"
+#define IMGUI_ZOOMABLE_IMAGE_VERSION_NUM  1000
+
+// ----------------------------------- Interface ------------------------------
 namespace ImGuiImage
 {
   // Structure to hold the state of the zoomable image widget.
@@ -186,7 +194,7 @@ namespace ImGuiImage
     State* state = nullptr);
 }
 
-// ----------------------------------- Implementation ------------------------
+// ----------------------------------- Implementation -------------------------
 namespace ImGuiImage
 {
   inline void Zoomable(
