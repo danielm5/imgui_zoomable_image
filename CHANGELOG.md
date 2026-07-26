@@ -15,8 +15,12 @@ Given a version number MAJOR.MINOR.PATCH, increment the:
 
 ### Update
 
-- Dear ImGUI submodule has been updated to latest release v1.92.9. The code has
-  been verify to compile an run without errors with it. No other code changes.
+- Dear ImGui submodule has been updated to latest release v1.92.9. The code
+  has been verified to compile and run without errors with this new version.
+- Examples have been update to use IMGUI_DISABLE_OBSOLETE_FUNCTIONS set.
+  This ensures the code does not rely on any ImGui deprecated function.
+- Image display now uses `ImGui::ImageWithBg()` because the version of
+  `ImGui::Image` function used before has been deprecated.
 
 ## [0.1.0]
 

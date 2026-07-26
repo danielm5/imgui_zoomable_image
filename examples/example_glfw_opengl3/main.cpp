@@ -176,6 +176,8 @@ int main(int, char**)
     ImVec2 imageWindowPos = ImVec2(frameSize.x * 0.1f, frameSize.y * 0.1f);
     ImVec2 imageWindowSize = ImVec2(frameSize.x * 0.5f, frameSize.y * 0.5f);
     ImVec2 controlsWindowPos = ImVec2(frameSize.x * 0.7f, frameSize.y * 0.1f);
+    ImVec2 imageWindowPos2 = ImVec2(frameSize.x * 0.2f, frameSize.y * 0.65f);
+    ImVec2 imageWindowSize2 = ImVec2(frameSize.x * 0.3f, frameSize.y * 0.3f);
 
     // Create a window to display the test image
     ImGui::SetNextWindowPos(imageWindowPos, ImGuiCond_Once);
@@ -183,7 +185,7 @@ int main(int, char**)
     {
       ImGui::Begin("Image Window");
       displaySize = ImGui::GetContentRegionAvail();
-      ImGuiImage::Zoomable(textureId, displaySize, &zoomState);
+      ImGuiImage::Zoomable((ImTextureID)(intptr_t)textureId, displaySize, &zoomState);
       ImGui::End();
     }
 
@@ -209,6 +211,16 @@ int main(int, char**)
       ImGui::Separator();
       ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
         1000.0f / io.Framerate, io.Framerate);
+      ImGui::End();
+    }
+
+    // Create a window to display the test image without any state
+    ImGui::SetNextWindowPos(imageWindowPos2, ImGuiCond_Once);
+    ImGui::SetNextWindowSize(imageWindowSize2, ImGuiCond_Once);
+    {
+      ImGui::Begin("Image Window with no state");
+      displaySize = ImGui::GetContentRegionAvail();
+      ImGuiImage::Zoomable((ImTextureID)(intptr_t)textureId, displaySize);
       ImGui::End();
     }
 

@@ -181,7 +181,7 @@ int main(int, char**)
     {
       ImGui::Begin("Image Window");
       displaySize = ImGui::GetContentRegionAvail();
-      ImGuiImage::Zoomable(textureView, displaySize, &zoomState);
+      ImGuiImage::Zoomable((ImTextureID)(intptr_t)textureView, displaySize, &zoomState);
       ImGui::End();
     }
 

@@ -19,6 +19,9 @@ add_library(imgui STATIC
 
 target_include_directories(imgui PUBLIC imgui imgui/backends imgui/misc/cpp)
 
+# Disable obsolete functions to force the use of the new API.
+target_compile_definitions(imgui PUBLIC IMGUI_DISABLE_OBSOLETE_FUNCTIONS)
+
 if (USE_GLFW)
   target_sources(imgui PRIVATE imgui/backends/imgui_impl_glfw.cpp)
   target_link_libraries(imgui PUBLIC glfw)
